@@ -6,6 +6,7 @@ from typing import Dict
 import click
 
 from semgrep.commands.ci import ci
+from semgrep.commands.help import help
 from semgrep.commands.install import install_semgrep_pro
 from semgrep.commands.login import login
 from semgrep.commands.login import logout
@@ -86,8 +87,8 @@ def cli(ctx: click.Context) -> None:
 
     maybe_set_git_safe_directories()
 
-
 cli.add_command(ci)
+cli.add_command(help)
 cli.add_command(login)
 cli.add_command(logout)
 cli.add_command(publish)
