@@ -352,6 +352,7 @@ class OutputHandler:
         *,
         all_targets: Set[Path],
         filtered_rules: List[Rule],
+        target_manager: TargetManager,
         ignore_log: Optional[FileTargetingLog] = None,
         profiler: Optional[ProfileManager] = None,
         profiling_data: Optional[ProfilingData] = None,  # (rule, target) -> duration
@@ -361,7 +362,6 @@ class OutputHandler:
         print_summary: bool = False,
         is_ci_invocation: bool = False,
         engine_type: EngineType = EngineType.OSS,
-        target_manager: TargetManager = None,
     ) -> None:
         state = get_state()
         self.has_output = True

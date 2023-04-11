@@ -87,6 +87,7 @@ def cli(ctx: click.Context) -> None:
 
     maybe_set_git_safe_directories()
 
+
 cli.add_command(ci)
 cli.add_command(help)
 cli.add_command(help, name="h")
