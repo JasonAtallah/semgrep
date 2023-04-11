@@ -18,7 +18,6 @@ import click
 import colorama
 from rich import box
 from rich.console import Console
-from rich.table import Style
 from rich.table import Table
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
@@ -638,13 +637,13 @@ def print_text_output(
         severity_dict[rule_match.severity.name].append(match_text)
 
 
-    table = Table(box=box.MINIMAL, show_edge=True, show_lines=True)
-    table.add_column("Severity", justify="left")
+    table = Table(box=box.SIMPLE)
+    table.add_column("Severity", justify="right")
     table.add_column("Findings", justify="left")
 
     for severity, findings in severity_dict.items():
         if findings:
-            table.add_row(severity, "\n".join(findings))
+            table.add_row(RuleSeverity[severity].fore_transformation() + severity, "\n".join(findings))
 
     console.print(table)
 
