@@ -58,7 +58,7 @@ def abort_if_linux_arm64() -> None:
         sys.exit(FATAL_EXIT_CODE)
 
 
-@click.group(cls=DefaultGroup, default_command="scan", name="semgrep")
+@click.group(cls=DefaultGroup, default_command="help", name="semgrep")
 @click.help_option("--help", "-h")
 @click.pass_context
 def cli(ctx: click.Context) -> None:
@@ -79,6 +79,7 @@ def cli(ctx: click.Context) -> None:
     subcommand: str = (
         ctx.invoked_subcommand if ctx.invoked_subcommand in commands else "unset"
     )
+    print("subcommand", subcommand)
 
     state.app_session.authenticate()
     state.app_session.user_agent.tags.add(f"command/{subcommand}")
