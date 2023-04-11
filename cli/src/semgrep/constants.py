@@ -62,7 +62,7 @@ class RuleSeverity(Enum):
                 return member
         raise ValueError(f"invalid rule severity value: {value}")
     
-    def fore_transformation(self) -> dict:
+    def fore_transformation(self) -> str:
         return {
             self.INFO.value: colorama.Fore.CYAN,
             self.WARNING.value: colorama.Fore.YELLOW,
