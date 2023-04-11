@@ -18,14 +18,19 @@ from typing import Set
 from typing import Type
 
 import requests
+from boltons.iterutils import get_path
 from boltons.iterutils import partition
+from rich.padding import Padding
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+from semgrep.console import console
 from semgrep.console import console
 from semgrep.console import Title
 from semgrep.constants import Colors
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
+from semgrep.core_runner import CoreRunner
+from semgrep.core_runner import Plan
 from semgrep.engine import EngineType
 from semgrep.error import FINDINGS_EXIT_CODE
 from semgrep.error import Level
@@ -43,6 +48,7 @@ from semgrep.formatter.vim import VimFormatter
 from semgrep.profile_manager import ProfileManager
 from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule
+from semgrep.rule import RuleProduct
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchMap
 from semgrep.state import get_state
@@ -80,6 +86,57 @@ def get_path_str(target: Path) -> str:
     except ValueError:
         path_str = str(target)
     return path_str
+
+def print_summary_line(
+    target_manager: TargetManager, sast_plan: Plan, sca_plan: Plan
+) -> None:
+    file_count = len(target_manager.get_all_files())
+    summary_line = f"Scanning {unit_str(file_count, 'file')}"
+    if target_manager.respect_git_ignore:
+        summary_line += " tracked by git"
+
+    sast_rule_count = len(sast_plan.rules)
+    summary_line += f" with {unit_str(sast_rule_count, 'Code rule')}"
+
+    sca_rule_count = len(sca_plan.rules)
+    if sca_rule_count:
+        summary_line += f", {unit_str(sca_rule_count, 'Supply Chain rule')}"
+
+    pro_rule_count = sum(
+        1
+        for rule in sast_plan.rules
+        if get_path(rule.metadata, ("semgrep.dev", "rule", "origin"), default=None)
+        == "pro_rules"
+    )
+    if pro_rule_count:
+        summary_line += f", {unit_str(pro_rule_count, 'Pro rule')}"
+
+    console.print(summary_line + ":")
+
+def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> None:
+    """Print a section like:"""
+    console.print(Title("Scan Status"))
+
+    sast_plan = CoreRunner.plan_core_run(
+        [rule for rule in rules if rule.product == RuleProduct.sast],
+        target_manager,
+    )
+    sca_plan = CoreRunner.plan_core_run(
+        [rule for rule in rules if rule.product == RuleProduct.sca],
+        target_manager,
+    )
+
+    print_summary_line(target_manager, sast_plan, sca_plan)
+
+    if not sca_plan.rules:
+        # just print these tables without the section headers
+        sast_plan.print(with_tables_for=RuleProduct.sast)
+        return
+
+    console.print(Padding(Title("Code Rules", order=2), (1, 0, 0, 0)))
+    sast_plan.print(with_tables_for=RuleProduct.sast)
+    console.print(Title("Supply Chain Rules", order=2))
+    sca_plan.print(with_tables_for=RuleProduct.sca)
 
 
 def _build_time_target_json(
@@ -304,6 +361,7 @@ class OutputHandler:
         print_summary: bool = False,
         is_ci_invocation: bool = False,
         engine_type: EngineType = EngineType.OSS,
+        target_manager: Optional[TargetManager] = None,
     ) -> None:
         state = get_state()
         self.has_output = True
@@ -389,11 +447,11 @@ class OutputHandler:
                 logger.verbose(ignore_log.verbose_output())
 
             output_text = ignores_line + suggestion_line + stats_line
-            # $NOTE$: this is where the scan summary header is printed
             console.print(Title("Scan Summary"))
-            # $NOTE$: this is where the scan summary line is printed
             logger.info(output_text)
         
+        print_scan_status(filtered_rules, target_manager)
+
         if self.has_output:
             output = self._build_output()
             if self.settings.output_destination:
