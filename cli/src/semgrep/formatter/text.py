@@ -16,7 +16,10 @@ from typing import Tuple
 
 import click
 import colorama
+from rich import box
 from rich.console import Console
+from rich.table import Style
+from rich.table import Table
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.console import console
@@ -26,6 +29,7 @@ from semgrep.constants import Colors
 from semgrep.constants import ELLIPSIS_STRING
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
+from semgrep.constants import RuleSeverity
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.formatter.base import BaseFormatter
@@ -550,8 +554,10 @@ def print_text_output(
 ) -> None:
     last_file = None
     last_message = None
-    sorted_rule_matches = sorted(rule_matches, key=lambda r: (r.path, r.rule_id))
-    for rule_index, rule_match in enumerate(sorted_rule_matches):
+    severity_dict = {severity.name: [] for severity in RuleSeverity}
+
+    for rule_index, rule_match in enumerate(rule_matches):
+        match_text = ''
         current_file = rule_match.path
         rule_id = rule_match.rule_id
         message = rule_match.message
@@ -561,9 +567,7 @@ def print_text_output(
         else:
             lockfile = None
         if last_file is None or last_file != current_file:
-            if last_file is not None:
-                console.print()
-            console.print(
+            match_text += (
                 f"\n{with_color(Colors.cyan, f'  {current_file} ', bold=False)}"
                 + (
                     f"with lockfile {with_color(Colors.cyan, f'{lockfile}')}"
@@ -588,22 +592,22 @@ def print_text_output(
                 False,
             )
             message_text = click.wrap_text(f"{message}", width, 8 * " ", 8 * " ", True)
-            console.print(f"{rule_id_text}\n{message_text}\n{shortlink_text}")
+            match_text += (f"\n{rule_id_text}\n{message_text}\n{shortlink_text}")
 
         last_file = current_file
         last_message = message
         next_rule_match = (
-            sorted_rule_matches[rule_index + 1]
-            if rule_index != len(sorted_rule_matches) - 1
+            rule_matches[rule_index + 1]
+            if rule_index != len(rule_matches) - 1
             else None
         )
         autofix_tag = with_color(Colors.green, "         ▶▶┆ Autofix ▶")
         if fix:
-            console.print(f"{autofix_tag} {fix}")
+            match_text += (f"\n{autofix_tag} {fix}")
         elif rule_match.fix_regex:
             fix_regex = rule_match.fix_regex
-            console.print(
-                f"{autofix_tag} s/{fix_regex.regex}/{fix_regex.replacement}/{fix_regex.count or 'g'}"
+            match_text += (
+                f"\n{autofix_tag} s/{fix_regex.regex}/{fix_regex.replacement}/{fix_regex.count or 'g'}"
             )
 
         is_same_file = (
@@ -619,7 +623,7 @@ def print_text_output(
             # to a different finding
             is_same_file and not (dataflow_traces and rule_match.dataflow_trace),
         ):
-            console.print(line)
+            match_text += ("\n" + line)
 
         if dataflow_traces:
             for line in dataflow_trace_to_lines(
@@ -630,7 +634,19 @@ def print_text_output(
                 per_line_max_chars_limit,
                 is_same_file,
             ):
-                console.print("  " + line)
+                match_text += ("\n  " + line)
+        severity_dict[rule_match.severity.name].append(match_text)
+
+
+    table = Table(box=box.MINIMAL, show_edge=True, show_lines=True)
+    table.add_column("Severity", justify="left")
+    table.add_column("Findings", justify="left")
+
+    for severity, findings in severity_dict.items():
+        if findings:
+            table.add_row(severity, "\n".join(findings))
+
+    console.print(table)
 
 
 @contextmanager
