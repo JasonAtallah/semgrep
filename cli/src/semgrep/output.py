@@ -361,7 +361,7 @@ class OutputHandler:
         print_summary: bool = False,
         is_ci_invocation: bool = False,
         engine_type: EngineType = EngineType.OSS,
-        target_manager: Optional[TargetManager] = None,
+        target_manager: TargetManager = None,
     ) -> None:
         state = get_state()
         self.has_output = True
