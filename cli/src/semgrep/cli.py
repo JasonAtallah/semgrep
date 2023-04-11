@@ -79,7 +79,6 @@ def cli(ctx: click.Context) -> None:
     subcommand: str = (
         ctx.invoked_subcommand if ctx.invoked_subcommand in commands else "unset"
     )
-    print("subcommand", subcommand)
 
     state.app_session.authenticate()
     state.app_session.user_agent.tags.add(f"command/{subcommand}")
