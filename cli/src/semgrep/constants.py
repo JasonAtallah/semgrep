@@ -61,14 +61,14 @@ class RuleSeverity(Enum):
             if member.value.lower() == value:
                 return member
         raise ValueError(f"invalid rule severity value: {value}")
-    
+
     def fore_transformation(self) -> str:
         return {
-            self.INFO.value: colorama.Fore.CYAN,
-            self.WARNING.value: colorama.Fore.YELLOW,
-            self.ERROR.value: colorama.Fore.RED,
-            self.INVENTORY.value: colorama.Fore.WHITE,
-            self.EXPERIMENT.value: colorama.Fore.WHITE,
+            "INFO": colorama.Fore.CYAN,
+            "WARNING": colorama.Fore.YELLOW,
+            "ERROR": colorama.Fore.RED,
+            "INVENTORY": colorama.Fore.WHITE,
+            "EXPERIMENT": colorama.Fore.WHITE,
         }.get(self.value, colorama.Fore.WHITE)
 
 

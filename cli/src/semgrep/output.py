@@ -24,7 +24,6 @@ from rich.padding import Padding
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.console import console
-from semgrep.console import console
 from semgrep.console import Title
 from semgrep.constants import Colors
 from semgrep.constants import OutputFormat
@@ -87,6 +86,7 @@ def get_path_str(target: Path) -> str:
         path_str = str(target)
     return path_str
 
+
 def print_summary_line(
     target_manager: TargetManager, sast_plan: Plan, sca_plan: Plan
 ) -> None:
@@ -112,6 +112,7 @@ def print_summary_line(
         summary_line += f", {unit_str(pro_rule_count, 'Pro rule')}"
 
     console.print(summary_line + ":")
+
 
 def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> None:
     """Print a section like:"""
@@ -352,7 +353,6 @@ class OutputHandler:
         *,
         all_targets: Set[Path],
         filtered_rules: List[Rule],
-        target_manager: TargetManager,
         ignore_log: Optional[FileTargetingLog] = None,
         profiler: Optional[ProfileManager] = None,
         profiling_data: Optional[ProfilingData] = None,  # (rule, target) -> duration
@@ -362,6 +362,7 @@ class OutputHandler:
         print_summary: bool = False,
         is_ci_invocation: bool = False,
         engine_type: EngineType = EngineType.OSS,
+        target_manager: Optional[TargetManager] = None,
     ) -> None:
         state = get_state()
         self.has_output = True
@@ -449,8 +450,9 @@ class OutputHandler:
             output_text = ignores_line + suggestion_line + stats_line
             console.print(Title("Scan Summary"))
             logger.info(output_text)
-        
-        print_scan_status(filtered_rules, target_manager)
+
+        if target_manager:
+            print_scan_status(filtered_rules, target_manager)
 
         if self.has_output:
             output = self._build_output()

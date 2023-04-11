@@ -366,6 +366,7 @@ def ci(
             output_extra,
             shown_severities,
             dependencies,
+            _,
         ) = semgrep.semgrep_main.main(
             core_opts_str=core_opts,
             engine_type=engine_type,

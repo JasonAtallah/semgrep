@@ -553,10 +553,13 @@ def print_text_output(
 ) -> None:
     last_file = None
     last_message = None
-    severity_dict = {severity.name: [] for severity in RuleSeverity}
+    severity_dict: Dict[RuleSeverity, List[str]] = {
+        severity: [] for severity in RuleSeverity
+    }
+    sorted_rule_matches = sorted(rule_matches, key=lambda r: (r.path, r.rule_id))
 
-    for rule_index, rule_match in enumerate(rule_matches):
-        match_text = ''
+    for rule_index, rule_match in enumerate(sorted_rule_matches):
+        match_text = ""
         current_file = rule_match.path
         rule_id = rule_match.rule_id
         message = rule_match.message
@@ -591,23 +594,21 @@ def print_text_output(
                 False,
             )
             message_text = click.wrap_text(f"{message}", width, 8 * " ", 8 * " ", True)
-            match_text += (f"\n{rule_id_text}\n{message_text}\n{shortlink_text}")
+            match_text += f"\n{rule_id_text}\n{message_text}\n{shortlink_text}"
 
         last_file = current_file
         last_message = message
         next_rule_match = (
-            rule_matches[rule_index + 1]
-            if rule_index != len(rule_matches) - 1
+            sorted_rule_matches[rule_index + 1]
+            if rule_index != len(sorted_rule_matches) - 1
             else None
         )
         autofix_tag = with_color(Colors.green, "         ▶▶┆ Autofix ▶")
         if fix:
-            match_text += (f"\n{autofix_tag} {fix}")
+            match_text += f"\n{autofix_tag} {fix}"
         elif rule_match.fix_regex:
             fix_regex = rule_match.fix_regex
-            match_text += (
-                f"\n{autofix_tag} s/{fix_regex.regex}/{fix_regex.replacement}/{fix_regex.count or 'g'}"
-            )
+            match_text += f"\n{autofix_tag} s/{fix_regex.regex}/{fix_regex.replacement}/{fix_regex.count or 'g'}"
 
         is_same_file = (
             next_rule_match.path == rule_match.path if next_rule_match else False
@@ -622,7 +623,7 @@ def print_text_output(
             # to a different finding
             is_same_file and not (dataflow_traces and rule_match.dataflow_trace),
         ):
-            match_text += ("\n" + line)
+            match_text += "\n" + line
 
         if dataflow_traces:
             for line in dataflow_trace_to_lines(
@@ -633,9 +634,8 @@ def print_text_output(
                 per_line_max_chars_limit,
                 is_same_file,
             ):
-                match_text += ("\n  " + line)
-        severity_dict[rule_match.severity.name].append(match_text)
-
+                match_text += "\n  " + line
+        severity_dict[rule_match.severity].append(match_text)
 
     table = Table(box=box.SIMPLE)
     table.add_column("Severity", justify="right")
@@ -643,7 +643,10 @@ def print_text_output(
 
     for severity, findings in severity_dict.items():
         if findings:
-            table.add_row(RuleSeverity[severity].fore_transformation() + severity, "\n".join(findings))
+            table.add_row(
+                severity.fore_transformation() + severity.value,
+                "\n".join(findings),
+            )
 
     console.print(table)
 

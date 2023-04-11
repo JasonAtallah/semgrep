@@ -117,6 +117,7 @@ def invoke_semgrep(
         output_extra,
         shown_severities,
         _,
+        _,
     ) = main(
         output_handler=output_handler,
         target=[str(t) for t in targets],
@@ -137,6 +138,7 @@ def invoke_semgrep(
     output_handler.rules_by_engine = output_extra.rules_by_engine
 
     return json.loads(output_handler._build_output())  # type: ignore
+
 
 def run_rules(
     filtered_rules: List[Rule],
@@ -308,6 +310,7 @@ def main(
     OutputExtra,
     Collection[RuleSeverity],
     Dict[str, List[FoundDependency]],
+    Optional[TargetManager],
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
 
@@ -548,6 +551,7 @@ def main(
     renamed_targets = set(
         baseline_handler.status.renamed.values() if baseline_handler else []
     )
+    
     return (
         filtered_matches_by_rule.kept,
         semgrep_errors,
@@ -558,5 +562,5 @@ def main(
         output_extra,
         shown_severities,
         dependencies,
-        target_manager
+        target_manager,
     )
