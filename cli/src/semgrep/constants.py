@@ -3,6 +3,8 @@ from enum import auto
 from enum import Enum
 from typing import Type
 
+import colorama
+
 RULES_KEY = "rules"
 ID_KEY = "id"
 CLI_RULE_ID = "-"
@@ -59,6 +61,15 @@ class RuleSeverity(Enum):
             if member.value.lower() == value:
                 return member
         raise ValueError(f"invalid rule severity value: {value}")
+
+    def fore_transformation(self) -> str:
+        return {
+            "INFO": colorama.Fore.CYAN,
+            "WARNING": colorama.Fore.YELLOW,
+            "ERROR": colorama.Fore.RED,
+            "INVENTORY": colorama.Fore.WHITE,
+            "EXPERIMENT": colorama.Fore.WHITE,
+        }.get(self.value, colorama.Fore.WHITE)
 
 
 RULE_ID_RE_STR = r"(?:[:=][\s]?(?P<ids>([^,\s](?:[,\s]+)?)+))?"

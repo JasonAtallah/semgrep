@@ -15,21 +15,16 @@ from typing import Set
 from typing import Tuple
 from typing import Union
 
-from boltons.iterutils import get_path
 from boltons.iterutils import partition
-from rich.padding import Padding
 
 from semdep.parse_lockfile import parse_lockfile_path
 from semgrep import __VERSION__
 from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import get_config
-from semgrep.console import console
-from semgrep.console import Title
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
 from semgrep.core_runner import CoreRunner
-from semgrep.core_runner import Plan
 from semgrep.engine import EngineType
 from semgrep.error import FilesNotFoundError
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
@@ -47,7 +42,6 @@ from semgrep.output_extra import OutputExtra
 from semgrep.profile_manager import ProfileManager
 from semgrep.project import get_project_url
 from semgrep.rule import Rule
-from semgrep.rule import RuleProduct
 from semgrep.rule_match import RuleMatchMap
 from semgrep.rule_match import RuleMatchSet
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
@@ -123,6 +117,7 @@ def invoke_semgrep(
         output_extra,
         shown_severities,
         _,
+        _,
     ) = main(
         output_handler=output_handler,
         target=[str(t) for t in targets],
@@ -145,59 +140,6 @@ def invoke_semgrep(
     return json.loads(output_handler._build_output())  # type: ignore
 
 
-def print_summary_line(
-    target_manager: TargetManager, sast_plan: Plan, sca_plan: Plan
-) -> None:
-    file_count = len(target_manager.get_all_files())
-    summary_line = f"Scanning {unit_str(file_count, 'file')}"
-    if target_manager.respect_git_ignore:
-        summary_line += " tracked by git"
-
-    sast_rule_count = len(sast_plan.rules)
-    summary_line += f" with {unit_str(sast_rule_count, 'Code rule')}"
-
-    sca_rule_count = len(sca_plan.rules)
-    if sca_rule_count:
-        summary_line += f", {unit_str(sca_rule_count, 'Supply Chain rule')}"
-
-    pro_rule_count = sum(
-        1
-        for rule in sast_plan.rules
-        if get_path(rule.metadata, ("semgrep.dev", "rule", "origin"), default=None)
-        == "pro_rules"
-    )
-    if pro_rule_count:
-        summary_line += f", {unit_str(pro_rule_count, 'Pro rule')}"
-
-    console.print(summary_line + ":")
-
-
-def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> None:
-    """Print a section like:"""
-    console.print(Title("Scan Status"))
-
-    sast_plan = CoreRunner.plan_core_run(
-        [rule for rule in rules if rule.product == RuleProduct.sast],
-        target_manager,
-    )
-    sca_plan = CoreRunner.plan_core_run(
-        [rule for rule in rules if rule.product == RuleProduct.sca],
-        target_manager,
-    )
-
-    print_summary_line(target_manager, sast_plan, sca_plan)
-
-    if not sca_plan.rules:
-        # just print these tables without the section headers
-        sast_plan.print(with_tables_for=RuleProduct.sast)
-        return
-
-    console.print(Padding(Title("Code Rules", order=2), (1, 0, 0, 0)))
-    sast_plan.print(with_tables_for=RuleProduct.sast)
-    console.print(Title("Supply Chain Rules", order=2))
-    sca_plan.print(with_tables_for=RuleProduct.sca)
-
-
 def run_rules(
     filtered_rules: List[Rule],
     target_manager: TargetManager,
@@ -208,7 +150,6 @@ def run_rules(
 ) -> Tuple[
     RuleMatchMap, List[SemgrepError], OutputExtra, Dict[str, List[FoundDependency]]
 ]:
-    print_scan_status(filtered_rules, target_manager)
 
     join_rules, rest_of_the_rules = partition(
         filtered_rules, lambda rule: rule.mode == JOIN_MODE
@@ -369,6 +310,7 @@ def main(
     OutputExtra,
     Collection[RuleSeverity],
     Dict[str, List[FoundDependency]],
+    Optional[TargetManager],
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
 
@@ -609,6 +551,7 @@ def main(
     renamed_targets = set(
         baseline_handler.status.renamed.values() if baseline_handler else []
     )
+    
     return (
         filtered_matches_by_rule.kept,
         semgrep_errors,
@@ -619,4 +562,5 @@ def main(
         output_extra,
         shown_severities,
         dependencies,
+        target_manager,
     )

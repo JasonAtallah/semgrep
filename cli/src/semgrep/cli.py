@@ -6,6 +6,7 @@ from typing import Dict
 import click
 
 from semgrep.commands.ci import ci
+from semgrep.commands.help import help
 from semgrep.commands.install import install_semgrep_pro
 from semgrep.commands.login import login
 from semgrep.commands.login import logout
@@ -57,7 +58,7 @@ def abort_if_linux_arm64() -> None:
         sys.exit(FATAL_EXIT_CODE)
 
 
-@click.group(cls=DefaultGroup, default_command="scan", name="semgrep")
+@click.group(cls=DefaultGroup, default_command="help", name="semgrep")
 @click.help_option("--help", "-h")
 @click.pass_context
 def cli(ctx: click.Context) -> None:
@@ -88,6 +89,8 @@ def cli(ctx: click.Context) -> None:
 
 
 cli.add_command(ci)
+cli.add_command(help)
+cli.add_command(help, name="h")
 cli.add_command(login)
 cli.add_command(logout)
 cli.add_command(publish)
