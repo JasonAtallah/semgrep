@@ -362,21 +362,6 @@ class OutputHandler:
             final_error = self.semgrep_structured_errors[-1]
             self.ignore_log.core_failure_lines_by_file = failed_to_analyze_lines_by_path
 
-        if self.has_output:
-            output = self._build_output()
-            if self.settings.output_destination:
-                self._save_output(self.settings.output_destination, output)
-            else:
-                if output:
-                    try:
-                        # console.print() would go to stderr; here we print() directly to stdout
-                        # the output string is already pre-formatted by semgrep.console
-                        print(output)
-                    except UnicodeEncodeError as ex:
-                        raise Exception(
-                            "Received output encoding error, please set PYTHONIOENCODING=utf-8"
-                        ) from ex
-
         if self.filtered_rules:
             fingerprint_matches, regular_matches = partition(
                 self.rule_matches,
@@ -404,8 +389,25 @@ class OutputHandler:
                 logger.verbose(ignore_log.verbose_output())
 
             output_text = ignores_line + suggestion_line + stats_line
+            # $NOTE$: this is where the scan summary header is printed
             console.print(Title("Scan Summary"))
+            # $NOTE$: this is where the scan summary line is printed
             logger.info(output_text)
+        
+        if self.has_output:
+            output = self._build_output()
+            if self.settings.output_destination:
+                self._save_output(self.settings.output_destination, output)
+            else:
+                if output:
+                    try:
+                        # console.print() would go to stderr; here we print() directly to stdout
+                        # the output string is already pre-formatted by semgrep.console
+                        print(output)
+                    except UnicodeEncodeError as ex:
+                        raise Exception(
+                            "Received output encoding error, please set PYTHONIOENCODING=utf-8"
+                        ) from ex
 
         self._final_raise(final_error)
 
