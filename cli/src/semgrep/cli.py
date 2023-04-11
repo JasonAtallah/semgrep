@@ -89,6 +89,7 @@ def cli(ctx: click.Context) -> None:
 
 cli.add_command(ci)
 cli.add_command(help)
+cli.add_command(help, name="h")
 cli.add_command(login)
 cli.add_command(logout)
 cli.add_command(publish)
